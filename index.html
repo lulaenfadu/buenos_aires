@@ -5,44 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Sin apuro. — Mapa de Buenos Aires</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.css" />
 <link href="https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- filtro SVG: recolorea el mapa al duotono azul profundo / crema del manual -->
-<svg width="0" height="0" style="position:absolute">
-  <filter id="duotoneFilter" color-interpolation-filters="sRGB">
-    <feColorMatrix type="matrix"
-      values="0.33 0.33 0.33 0 0
-              0.33 0.33 0.33 0 0
-              0.33 0.33 0.33 0 0
-              0    0    0    1 0"/>
-    <feComponentTransfer>
-      <feFuncR type="table" tableValues="0 0.498 0.961"/>
-      <feFuncG type="table" tableValues="0.306 0.651 0.953"/>
-      <feFuncB type="table" tableValues="0.592 0.796 0.933"/>
-    </feComponentTransfer>
-  </filter>
-</svg>
-
 <img src="Media/Imagenes/logo_sin_apuro-10.png" alt="Sin apuro." class="logo-badge"/>
 <div id="map"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.js"></script>
 <script>
-  const map = L.map('map', {
-    zoomControl:false,
-    minZoom:5,
-    maxZoom:18,
-  }).setView([-36.6, -60.5], 7); // centrado en la provincia de Buenos Aires
+  const MAPTILER_KEY = 'La7R5zHhXkF1t8hJwfPn';
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'&copy; OpenStreetMap contributors',
-    subdomains:'abc',
-    maxZoom:19,
-  }).addTo(map);
+  // colores de marca
+  const CREAM      = '#F3EEE2';
+  const BLUE       = '#004e97';
+  const BLUE_LIGHT = '#7FA6CB';
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`,
+    center: [-60.5, -36.6], // en MapLibre va [longitud, latitud] — al revés que en Leaflet
+    zoom: 6,
+    minZoom: 5,
+    maxZoom: 18,
+  });
+
+  map.on('load', () => {
+    map.getStyle().layers.forEach(layer => {
+      try {
+        if (layer.type === 'background') {
+          map.setPaintProperty(layer.id, 'background-color', CREAM);
+        } else if (layer.id.toLowerCase().includes('water')) {
+          map.setPaintProperty(layer.id, 'fill-color', BLUE);
+        } else if (layer.type === 'fill') {
+          map.setPaintProperty(layer.id, 'fill-color', CREAM);
+        } else if (layer.type === 'line') {
+          map.setPaintProperty(layer.id, 'line-color', BLUE_LIGHT);
+        } else if (layer.type === 'symbol') {
+          map.setPaintProperty(layer.id, 'text-color', BLUE);
+        }
+      } catch (e) {
+        // algunas capas no tienen esa propiedad puntual — las salteamos sin romper el resto
+      }
+    });
+  });
 </script>
 </body>
 </html>
