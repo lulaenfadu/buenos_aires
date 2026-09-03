@@ -12,6 +12,10 @@
 <body>
 
 <img src="Media/Imagenes/logo_sin_apuro-10.png" alt="Sin apuro." class="logo-badge"/>
+<div class="search-box">
+  <input id="searchInput" type="text" placeholder="Buscar un lugar..." autocomplete="off">
+  <div id="searchResults" class="search-results"></div>
+</div>
 <div id="map"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.js"></script>
@@ -31,6 +35,41 @@
     minZoom: 5,
     maxZoom: 18,
   });
+  const BBOX = '-63.4,-41.1,-56.6,-33.2'; // bounding box de la provincia, sesga los resultados
+let debounceTimer;
+
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 3) { searchResults.innerHTML = ''; return; }
+  debounceTimer = setTimeout(() => buscar(q), 300);
+});
+
+async function buscar(q) {
+  const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(q)}.json?key=${MAPTILER_KEY}&bbox=${BBOX}&language=es&limit=5`;
+  const res = await fetch(url);
+  const data = await res.json();
+  searchResults.innerHTML = '';
+  (data.features || []).forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'search-item';
+    item.textContent = f.place_name;
+    item.addEventListener('click', () => {
+      const [lon, lat] = f.center;
+      map.flyTo({ center: [lon, lat], zoom: 12, speed: 1.2, curve: 1.4 });
+      searchResults.innerHTML = '';
+      searchInput.value = f.place_name;
+    });
+    searchResults.appendChild(item);
+  });
+}
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') buscar(searchInput.value.trim());
+});
 
   map.on('load', () => {
     map.getStyle().layers.forEach(layer => {
